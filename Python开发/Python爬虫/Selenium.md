@@ -1,14 +1,111 @@
-Selenium自动化框架
+## Selenium自动化框架
 
 - 实现浏览器自动化的相关操作!
+
 - 环境安装:pip install selenium
+
+- 官网：https://www.selenium.dev/zh-cn
+
 - 下载浏览器的驱动程序(下载高版本的驱动)
     - http://npm.taobao.org/mirrors/chromedriver/
     - http://chromedriver.storage.googleapis.com/index.html
+    
+    
+
+### Selenium驱动管理
+
+使用驱动的三种方式
+
+- 驱动管理软件
+
+​	大多数机器会自动更新浏览器, 但驱动程序不会. 为了确保为浏览器提供正确的驱动程序, 这里有许多第三方库可为您提供帮助.
+
+```python
+# 安装驱动管理软件
+pip install webdriver-manager
+
+# 与Chrome浏览器一起使用
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+driver = webdriver.Chrome(ChromeDriverManager().install())
+
+# 也可以使用以下写法
+service = Service(executable_path=ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service)
+
+# Firefox
+from selenium import webdriver
+from webdriver_manager.firefox import GeckoDriverManager
+driver = webdriver.Firefox(executable_path=GeckoDriverManager().install())
+
+
+# Edge
+from selenium import webdriver
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
+driver = webdriver.Edge(EdgeChromiumDriverManager().install())
+
+# Opera-linux
+from selenium import webdriver
+from webdriver_manager.opera import OperaDriverManager
+driver = webdriver.Opera(executable_path=OperaDriverManager().install())
+
+# Opera-Windows
+from selenium import webdriver
+from webdriver_manager.opera import OperaDriverManager
+
+options = webdriver.ChromeOptions()
+options.add_argument('allow-elevated-browser')
+options.binary_location = "C:\\Users\\USERNAME\\FOLDERLOCATION\\Opera\\VERSION\\opera.exe"
+driver = webdriver.Opera(executable_path=OperaDriverManager().install(), options=options)
+
+# IE
+from selenium import webdriver
+from webdriver_manager.microsoft import IEDriverManager
+driver = webdriver.Ie(IEDriverManager().install())
+```
 
 
 
-#### Selenium简单使用
+- PATH环境变量
+
+需要先下载驱动，然后加入环境变量即可
+
+Windows
+
+```bash
+# 要查看哪些目录已经存在PATH，请打开命令提示符并执行：
+echo %PATH%
+
+# 如果驱动程序的位置不在列出的目录中，则可以将新目录添加到 PATH：
+setx PATH "%PATH%;C:\WebDriver\bin"
+
+# 您可以通过启动驱动程序来测试它是否已正确添加
+chromedriver.exe
+```
+
+Linux
+
+```bash
+
+echo 'export PATH=$PATH:/path/to/driver' >> ~/.bash_profile
+source ~/.bash_profile
+```
+
+
+
+- 硬编码位置
+
+```python
+# 需要预先下载chromedriver，然后手动指定驱动位置
+service = Service(executable_path="/path/to/chromedriver")
+driver = webdriver.Chrome(service=service)
+```
+
+
+
+
+
+### Selenium简单使用
 
 ```Python
 # 简单使用
@@ -40,9 +137,71 @@ bro.quit()
 
 
 
+### Selenium常用操作
+
+#### 类与方法
+
+```python
+import time
+
+from selenium import webdriver  # 驱动浏览器
+from selenium.webdriver import ActionChains   # 鼠标的相关操作，比如滑动验证
+from selenium.webdriver.common.by import By   # 选择器，以什么方式选择标签元素
+from selenium.webdriver.common.keys import Keys   # 键盘相关
+from selenium.webdriver.support import expected_conditions as EC  # 各种判断，一般跟等待事件连用，比如说等待某个元素加载出来
+from selenium.webdriver.support.wait import WebDriverWait  # 等待事件，可以与EC连用
+from webdriver_manager.chrome import ChromeDriverManager
+
+# 加载Chrome驱动
+driver = webdriver.Chrome(ChromeDriverManager().install())
+
+# 发起get请求
+driver.get("https://www.baidu.com")
+
+# 窗口最大化
+driver.maximize_window()
+print("当前请求的URL为：%s" % driver.current_url)
+print("当前页面的title为：%s" % driver.title)
+print("当前浏览器对象为：%s" % driver.name)
+print(driver.current_window_handle)  # 获取当前窗口
+print(driver.get_cookies())   # 获取cookies
+print(driver.page_source)   # 获取当前页面内容
+
+time.sleep(5)
+driver.close()	# 关闭当前窗口
+driver.quit()	# 关闭浏览器
+
+```
 
 
-#### selenium和爬虫之间的关联
+
+#### 选择器
+
+```python
+from selenium import webdriver   # 驱动浏览器
+from selenium.webdriver.support.wait import WebDriverWait  # 等待事件
+from webdriver_manager.chrome import ChromeDriverManager
+driver = webdriver.Chrome(ChromeDriverManager().install())
+
+wait = WebDriverWait(driver, 10)
+
+
+
+driver.get('https://www.baidu.com')
+driver.find_element_by_id('su')  # id选择器
+driver.find_element_by_class_name('xx')  # 类选择器，1个
+driver.find_elements_by_class_name('xx')  # 类选择器，多个
+driver.find_element_by_link_text('xxx')  # 链接文本选择器
+driver.find_element_by_xpath('xxxx')  # xpath选择器
+driver.find_element_by_tag_name('h1')  # 标签选择器，获取1个
+driver.find_elements_by_tag_name('h1')  # 标签选择器，获取多个
+driver.find_element_by_css_selector('xxx')  # 样式选择器
+
+```
+
+
+
+### selenium和爬虫之间的关联
 
 - 可以便捷的捕获到动态加载的数据(可见即可得)
 - 可以实现模拟登陆

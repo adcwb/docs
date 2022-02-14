@@ -36,7 +36,7 @@
 		2.RBD ：一个数据块是一个字节序列（例如，一个512字节的数据块）。基于数据块存储接口最常见的介质，如硬盘，光盘，软盘，甚至是传统的9磁道的磁带的方式来存储数据。块设备接口的普及使得虚拟块设备成为构建像Ceph海量数据存储系统理想选择。 在一个Ceph的集群中， Ceph的块设备支持自动精简配置，调整大小和存储数据。Ceph的块设备可以充分利用 RADOS功能，实现如快照，复制和数据一致性。Ceph的RADOS块设备（即RBD）通过RADOS协议与内核模块或librbd的库进行交互。
 		
 		3.Ceph FS ：Ceph文件系统（CEPH FS）是一个POSIX兼容的文件系统，使用Ceph的存	储集群来存储其数据。CEPH FS的结构图如下所示： 
-	
+
 
 ### 存储类型
 
@@ -380,6 +380,10 @@ ceph orch apply osd --all-available-devices
 
 ![image-20211104124818196](https://raw.githubusercontent.com/adcwb/storages/master/image-20211104124818196.png)
 
+![image-20220208142313368](https://raw.githubusercontent.com/adcwb/storages/master/image-20220208142313368.png)
+
+
+
 
 
 #### ceph文件系统
@@ -466,3 +470,78 @@ rbd rm {pool-name}/{image-name}
 
 
 #### ceph对象网关
+
+
+
+### OpenStack对接ceph块存储
+
+
+
+```bash
+# 创建池
+ceph osd pool create volumes
+ceph osd pool create images
+ceph osd pool create backups
+ceph osd pool create vms
+
+# 新创建的池必须在使用前进行初始化
+rbd pool init volumes
+rbd pool init images
+rbd pool init backups
+rbd pool init vms
+
+# 查看创建的池
+ceph osd lspools
+
+# 配置OpenStack Ceph客户端
+# 在ceph集群的控制节点上执行,分别往计算节点，控制节点，镜像节点和存储节点复制文件
+ssh {your-openstack-server} sudo tee /etc/ceph/ceph.conf </etc/ceph/ceph.conf
+
+
+# ceph节点配置认证
+## 创建glance用户及权限
+ceph auth get-or-create client.glance mon 'profile rbd' osd 'profile rbd pool=images' mgr 'profile rbd pool=images' -o /etc/ceph/ceph.client.glance.keyring
+
+## 创建cinder用户及权限
+ceph auth get-or-create client.cinder mon 'profile rbd' osd 'profile rbd pool=volumes, profile rbd pool=vms, profile rbd-read-only pool=images' mgr 'profile rbd pool=volumes, profile rbd pool=vms' -o /etc/ceph/ceph.client.cinder.keyring
+
+## 创建cinder-backup用户及权限
+ceph auth get-or-create client.cinder-backup mon 'profile rbd' osd 'profile rbd pool=backups' mgr 'profile rbd pool=backups' -o /etc/ceph/ceph.client.cinder-backup.keyring
+
+## 创建nova用户及权限
+ceph auth get-or-create client.nova mon 'profile rbd' osd 'profile rbd pool=volumes, profile rbd pool=vms, profile rbd-read-only pool=images,profile rbd pool=backups' mgr 'profile rbd pool=volumes, profile rbd pool=vms' -o /etc/ceph/ceph.client.nova.keyring
+
+# 安装ceph客户端包
+# 此操作在openstack节点执行，所有需要访问ceph集群的节点都需要安装
+yum install -y python-rbd ceph-common
+
+
+ceph auth get-or-create client.glance | ssh 192.168.10.241 sudo tee /etc/ceph/ceph.client.glance.keyring
+ssh 192.168.10.241 sudo chown glance:glance /etc/ceph/ceph.client.glance.keyring
+ceph auth get-or-create client.cinder | ssh 192.168.10.241 sudo tee /etc/ceph/ceph.client.cinder.keyring
+ssh 192.168.10.241 sudo chown cinder:cinder /etc/ceph/ceph.client.cinder.keyring
+ceph auth get-or-create client.cinder-backup | ssh 192.168.10.241 sudo tee /etc/ceph/ceph.client.cinder-backup.keyring
+ssh 192.168.10.241 sudo chown cinder:cinder /etc/ceph/ceph.client.cinder-backup.keyring
+
+ceph auth get-key client.cinder | ssh 192.168.10.241 tee client.cinder.key
+
+cat > secret.xml <<EOF
+<secret ephemeral='no' private='no'>
+  <uuid>b68d66f9-2316-4a2c-b2a9-1a525abbbf32</uuid>
+  <usage type='ceph'>
+    <name>client.cinder secret</name>
+  </usage>
+</secret>
+EOF
+
+sudo virsh secret-define --file secret.xml
+
+sudo virsh secret-set-value --secret b68d66f9-2316-4a2c-b2a9-1a525abbbf32 --base64 $(cat client.cinder.key) && rm client.cinder.key secret.xml
+
+
+```
+
+
+
+
+

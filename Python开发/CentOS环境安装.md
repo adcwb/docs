@@ -5,11 +5,8 @@ wget https://www.python.org/ftp/python/3.6.15/Python-3.6.15.tgz
 tar zxvf Python-3.6.15.tgz 
 cd Python-3.6.15/
 mkdir /usr/local/python3
-./configure --prefix=/usr/local/python3 --enable-optimizations
+./configure --prefix=/usr/local/python3.8 --enable-optimizations
 make && make instal
-
-
-
 
 ```
 
