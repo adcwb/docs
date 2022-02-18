@@ -376,7 +376,13 @@ ceph orch apply osd --all-available-devices
 
 
 
-访问web页面
+#### 访问web页面
+
+账号: admin 
+
+密码: qwer1234!@#$QWER 
+
+URL地址：https://192.168.10.249:8443/#/dashboard
 
 ![image-20211104124818196](https://raw.githubusercontent.com/adcwb/storages/master/image-20211104124818196.png)
 

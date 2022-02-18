@@ -1385,6 +1385,7 @@ enable_ipset = true
 修改 `/etc/neutron/plugins/ml2/linuxbridge_agent.ini` 文件，添加以下内容：
 
 ```bash
+# ens192需要修改成本地网卡名称
 [linux_bridge]
 physical_interface_mappings = provider:ens192
 
