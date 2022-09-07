@@ -15,7 +15,7 @@ yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce
 安装docker
 
 ```bash
-yum install docker-ce
+yum -y install docker-ce
 ```
 
 国内配置镜像加速器

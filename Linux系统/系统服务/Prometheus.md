@@ -680,13 +680,78 @@ scrape_configs:
 
 ```
 
+### 监控docker资源使用率
 
+CAdvisor为Google开源的一款用于监控和展示容器运行状态的可视化工具。CAdvior可直接运行在主机上，它不仅可以搜集到机器上所有运行的容器信息，还提供查询界面和http接口，方便如Prometheus等监控系统进行数据的获取。
 
-### 邮件告警
+```bash
+# 下载镜像
+$ docker pull google/cadvisor:latest
+
+# 启动镜像
+$ docker run \
+  --volume=/:/rootfs:ro \
+  --volume=/var/run:/var/run:rw \
+  --volume=/sys:/sys:ro \
+  --volume=/var/lib/docker/:/var/lib/docker:ro \
+  --volume=/dev/disk/:/dev/disk:ro \
+  --publish=8080:8080 \
+  --detach=true \
+  --name=cadvisor \
+  --privileged=true \
+  google/cadvisor:latest
+  
+  注解：该命令在容器中挂载了几个目录，ro代表只读，CAdvisor将从其中收集数据。rw代表可读写，此处指定/var/run目录，用于Docker套接字的挂载；--detach将以守护进程的方式运行；--name对生成的容器进行命名；在Ret Hat,CentOS, Fedora 等发行版上需要传递如下参数--privileged=true。
+  
+# 浏览器打开http://$ip:8080 ，可查看CAdvisor的web界面
+```
+
+**容器指标**
+
+```bash
+# 以下是比较常用到的一些容器指标：
+
+#CPU指标
+container_cpu_load_average_10s       #最近10秒容器的CPU平均负载情况
+container_cpu_usage_seconds_total    #容器的CPU累积占用时间
+
+# 内存指标
+container_memory_max_usage_bytes     #容器的最大内存使用量（单位:字节）
+container_memory_usage_bytes        #容器的当前内存使用量（单位：字节）
+container_spec_memory_limit_bytes    #容器的可使用最大内存数量（单位：字节）
+
+# 网络指标
+container_network_receive_bytes_total   #容器网络累积接收字节数据总量（单位：字节）
+container_network_transmit_bytes_total  #容器网络累积传输数据总量（单位：字节）
+
+#存储指标
+container_fs_usage_bytes    #容器中的文件系统存储使用量（单位：字节）
+container_fs_limit_bytes    #容器中的文件系统存储总量（单位：字节）
+
+```
+
+**Prometheus集成**
+
+```yaml
+- job_name: 'docker'
+    static_configs:
+    - targets:
+      -  '192.168.214.108:8080'
+      labels:
+        group: docker
+```
+
+**Grafana展示**
+
+ID：193
+
+### 告警配置
 
 使用alertmanager组件发送告警信息给用户
 
 下载地址：https://prometheus.io/download/
+
+#### 邮件告警
 
 ```bash
 # 发送邮件组件
@@ -732,10 +797,8 @@ route:
 receivers:
 - name: 'email'
   email_configs:
-  # 此处若是需要同时发送信息给多个收件人，用逗号隔开即可
   - to: 'test@example.com'
     send_resolved: true
-    from: 'xxxx@qq.com
 
 
 inhibit_rules:
@@ -794,7 +857,6 @@ groups:
 - name: node
   rules:
   - alert: server_status
-  # 此处的job就是prometheus配置文件中的job_name
     expr: up{job="192.168.10.243"} == 0
     for: 15s
     annotations:
@@ -807,7 +869,7 @@ groups:
 
 ![image-20220120151416507](https://raw.githubusercontent.com/adcwb/storages/master/image-20220120151416507.png)
 
-### 告警模板配置
+#### 告警模板配置
 
 修改alertmanager.yml
 
@@ -851,9 +913,11 @@ inhibit_rules:
 
 
 
-### 企业微信告警
+#### 企业微信告警
 
 由于无法注册应用，暂时无法演示
+
+#### 钉钉告警
 
 
 

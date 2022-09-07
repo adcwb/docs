@@ -1,3 +1,9 @@
+**Redis参考文档**
+
+[toc]
+
+
+
 ### 源码编译安装redis
 
 ```bash
@@ -14,12 +20,11 @@ redis-check-dump  快照文件检测工具,效果类上
 redis-cli  客户端
 redis-server 服务端
 
-
 ```
 
 
 
-服务端配置文件
+#### 服务端配置文件
 
 ```bash
 [root@master2 ~]# cat /etc/redis/redis.conf | grep -v ^# | grep -v "^$"
@@ -71,7 +76,7 @@ appendfsync everysec
 
 
 
-服务
+#### 配置systemd服务
 
 ```bash
 [root@localhost utils]# cat /usr/lib/systemd/system/redis.service 
@@ -94,7 +99,7 @@ WantedBy=multi-user.target
 
 
 
-启动
+#### 启动Redis
 
 ```bash
 systemctl daemon-reload 
@@ -109,7 +114,7 @@ source /etc/profile
 
 ### 主从配置
 
-master
+#### master配置
 
 ```bash
 # vim /etc/redis/6379.conf
@@ -128,7 +133,7 @@ masterauth：pwdtest@2021            # 设置slave 服务连接 master 的密码
 
 
 
-slave
+#### slave配置
 
 ```bash
 # vim /etc/redis/6379.conf
@@ -148,7 +153,7 @@ replicaof 10.0.0.11 6379            # 指定要同步的Master节点IP和端口
 
 
 
-验证
+#### 验证集群
 
 ```bash
 [root@master1 data]# redis-cli  info replication  
@@ -174,7 +179,7 @@ repl_backlog_histlen:541
 
 
 
-常用命令
+#### 常用命令
 
 ```bash
 # 命令格式：
@@ -687,6 +692,219 @@ OK
 
 
 ```
+
+
+
+### Redis使用
+
+#### Redis数据类型
+
+```shell
+1. string类型:
+	字符串类型是 Redis 中最为基础的数据存储类型，它在 Redis 中是二进制安全的，也就是byte类型
+	最大容量是512M。
+	
+2. hash类型:
+		hash用于存储对象，对象的结构为属性、值，值的类型为string。
+		key:{
+            域:值[这里的值只能是字符串]，
+            域:值，            
+            域:值，
+            域:值，
+            ...
+		}
+		
+3. list类型:
+		列表的元素类型为string。
+		key:[ 值1，值2,值3..... ]
+		
+4. set类型:
+	无序集合，元素为string类型，元素唯一不重复，没有修改操作。
+	{值1,值4,值3,值5}
+	
+5. zset类型:
+	有序集合，元素为string类型，元素唯一不重复，没有修改操作。
+```
+
+**如何验证Redis是否连接成功**
+
+```powershell
+PS C:\> redis-cli
+127.0.0.1:6379> ping
+PONG
+127.0.0.1:6379>
+
+# 常用参数
+redis-cli -h host -p port -a password
+```
+
+#### Redis键
+
+```bash
+# 查找所有符合给定模式( pattern)的 key 。
+127.0.0.1:6379> keys *
+1) "hello"
+
+# 查看key类型
+127.0.0.1:6379> type "hello"
+string
+
+# 序列化给定 key ，并返回被序列化的值。
+127.0.0.1:6379> dump "hello"
+"\x00\x05world\t\x00\xc9#mH\x84/\x11s"
+
+# 检查给定 key 是否存在，存在返回1，否则返回0
+127.0.0.1:6379> exists "hello"
+(integer) 1
+127.0.0.1:6379>
+127.0.0.1:6379> exists "hello1"
+(integer) 0
+
+# 为给定key设置过期时间，以秒计
+127.0.0.1:6379> expire hello 3
+(integer) 1
+127.0.0.1:6379> get hello
+(nil)
+
+# 将当前数据库的key移动到给定的数据库db当中。
+127.0.0.1:6379> move hello 2
+(integer) 1
+127.0.0.1:6379> get hello
+(nil)
+
+# 移除key的过期时间，key将持久保持。
+127.0.0.1:6379> persist hello
+(integer) 1
+
+# 以毫秒为单位返回 key 的剩余的过期时间。
+127.0.0.1:6379> pttl hello
+(integer) 6153
+
+# 以秒为单位，返回给定 key 的剩余生存时间(TTL, time to live)。
+127.0.0.1:6379> ttl hello
+(integer) 9
+
+# 从当前数据库中随机返回一个key 
+127.0.0.1:6379> RANDOMKEY
+"hello"
+
+# 修改 key 的名称
+127.0.0.1:6379> rename hello keys
+OK
+
+# 仅当newkey不存在时，将key改名为newkey
+127.0.0.1:6379> renamenx keys hello
+(integer) 1
+```
+
+
+
+#### string类型
+
+```bash
+# 设置指定 key 的值。
+127.0.0.1:6379> set hello redis
+OK
+
+# 获取指定key的值
+127.0.0.1:6379> get hello
+"redis"
+
+# 返回key中字符串值的子字符，相当于对值进行切片
+127.0.0.1:6379> getrange hello 0 4
+"redis"
+
+# 将给定key的值设为value ，并返回key的旧值(old value)。
+127.0.0.1:6379> getset hello world
+"redis"
+
+# 获取所有(一个或多个)给定key的值。
+127.0.0.1:6379> mget k1 k2 k3
+1) "v1"
+2) "v2"
+3) "v3"
+
+# 返回key所储存的字符串值的长度。
+127.0.0.1:6379> strlen hello
+(integer) 5
+
+# 将值value关联到key，并将key的过期时间设为seconds(以秒为单位)。
+127.0.0.1:6379> setex hello 120 hahaha
+OK
+
+# 只有在key不存在时设置key的值。
+127.0.0.1:6379> setnx age 18
+(integer) 1
+
+# 同时设置一个或多个key-value对，当且仅当所有给定key都不存在。
+127.0.0.1:6379> msetnx k4 v4 k5 v5 k6 v6
+(integer) 1
+
+# 如果key已经存在并且是一个字符串， APPEND命令将指定的value追加到该key原来值（value）的末尾。
+127.0.0.1:6379> append k1 v1
+(integer) 4
+
+# 将 key 中储存的数字值增一。value值必须是数字
+127.0.0.1:6379> incr age
+(integer) 19
+
+# 将 key 中储存的数字值减一。value值必须是数字
+127.0.0.1:6379> decr age
+(integer) 18
+```
+
+#### hash类型
+
+```bash
+# 设置值
+127.0.0.1:6379> hset myhash field "hello"
+(integer) 1
+
+# 获取存储在哈希表中指定字段的值。
+127.0.0.1:6379> hget myhash field
+"hello"
+
+# 查看key的类型
+127.0.0.1:6379> type myhash
+hash
+
+# 一次性设置多个值
+127.0.0.1:6379> hmset user name "zhangsan" age 18 sex "nan"
+OK
+
+# 获取在哈希表中指定 key 的所有字段和值
+127.0.0.1:6379> hgetall
+(error) ERR wrong number of arguments for 'hgetall' command
+127.0.0.1:6379> hgetall user
+1) "name"
+2) "zhangsan"
+3) "age"
+4) "18"
+5) "sex"
+6) "nan"
+
+# 删除一个或多个哈希表字段
+127.0.0.1:6379> hdel myhash field
+(integer) 1
+
+# 查看哈希表key中，指定的字段是否存在， 存在返回1 不存在返回0
+127.0.0.1:6379> hexists myhash field
+(integer) 0
+
+
+```
+
+
+
+
+
+
+
+#### list类型
+
+#### set类型
+
+#### zset类型
 
 
 
