@@ -151,9 +151,26 @@ $ sudo systemctl start nginx
 
 ```
 
+容器启动
+
+```bash
+docker run \
+-p 88:80 \
+-p 443:443 \
+--name nginx \
+-v /data/nginx/conf/nginx.conf:/etc/nginx/nginx.conf \
+-v /data/nginx/cert:/etc/nginx/cert \
+-v /data/nginx/conf/conf.d:/etc/nginx/conf.d \
+-v /data/nginx/logs:/var/log/nginx \
+-v /data/nginx/html:/usr/share/nginx/html \
+-d nginx:latest
+```
+
 总结
 
 上面这套步骤和 yum 安装的没有很大差别，源码安装的好处在于可以自定义，可以灵活选择版本、模块。
+
+
 
 # Nginx配置文件
 

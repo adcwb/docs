@@ -258,6 +258,43 @@ set_var EASYRSA_CRL_DAYS        60
 
 ```
 
+配置文件示例
+
+```bash
+[root@iZd7oawrdmsm8dagsrrr1xZ ~]# cat /etc/openvpn/server/server.conf |grep '^[^#|^;]'
+port 1194
+proto udp
+dev tun
+ca ca.crt
+cert openvpn-server.crt
+key openvpn-server.key  # This file should be kept secret
+dh dh.pem
+crl-verify crl.pem
+server 10.8.0.0 255.255.255.0
+ifconfig-pool-persist ipp.txt
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS 103.201.25.21"
+push "dhcp-option DNS 114.114.114.114"
+client-to-client
+max-clients 100
+duplicate-cn
+keepalive 10 120
+tls-auth ta.key 0 # This file is secret
+cipher AES-256-CBC
+compress lz4-v2
+push "compress lz4-v2"
+comp-lzo
+user openvpn
+group openvpn
+persist-key
+persist-tun
+status  /var/log/openvpn/openvpn-status.log
+log-append  /var/log/openvpn/openvpn.log
+verb 6
+mute 20
+explicit-exit-notify 1
+```
+
 
 
 ### 防火墙配置
@@ -290,7 +327,7 @@ firewall-cmd --reload
 
 ```bash
 # 复制配置文件模板
-	cp -p /usr/share/doc/openvpn-2.4.11/sample/sample-config-files/client.conf /etc/openvpn/client/
+	cp -p /usr/share/doc/openvpn-2.4.*/sample/sample-config-files/client.conf /etc/openvpn/client/
 # 修改后的内容如下
 [root@localhost client]# cat client.conf |grep '^[^#|^;]'
     client
@@ -338,6 +375,34 @@ openvpn --daemon --cd /root/client/ --config client.ovpn --log-append /var/log/o
 	--auth-nocache：自动认证
 
 ```
+
+参考模板
+
+```bash
+[root@iZd7oawrdmsm8dagsrrr1xZ client]# cat client.conf |grep '^[^#|^;]'
+client
+dev tun
+proto udp
+remote 8.208.83.52 1194
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+ca ca.crt
+cert openvpn-client.crt
+key openvpn-client.key
+remote-cert-tls server
+tls-auth ta.key 1
+cipher AES-256-CBC
+comp-lzo
+verb 6
+mute 20
+status client-status.log
+```
+
+
+
+
 
 ### OpenVPN连接后无法ssh
 

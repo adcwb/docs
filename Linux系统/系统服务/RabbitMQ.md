@@ -159,3 +159,68 @@ deb-src [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://pac
 
 
 
+## RabbitMQ使用
+
+```bash
+# 启动web页面
+	rabbitmq-plugins enable rabbitmq_management
+
+# 关闭插件
+	rabbitmq-plugins disable rabbitmq_management
+
+# 添加用户
+	rabbitmqctl add_user admin qwer1234
+	
+# 删除用户
+	rabbitmqctl delete_user admin
+	
+# 修改密码
+	rabbitmqctl change_password admin qwer1234
+	
+# 给用户添加角色
+	rabbitmqctl set_user_tags admin administrator
+	management
+	monitoring
+	policymaker
+	administrator
+	
+# 给用户添加权限
+	rabbitmqctl set_permissions -p "/" admin ".*" ".*" ".*"
+	
+	rabbitmqctl set_permissions [-p vhostpath] {user} {conf} {write} {read}
+	-p vhostpath ：用于指定一个资源的命名空间，例如 –p / 表示根路径命名空间
+	user：用于指定要为哪个用户授权填写用户名
+	conf:一个正则表达式match哪些配置资源能够被该用户配置。
+	write:一个正则表达式match哪些配置资源能够被该用户读。
+	read:一个正则表达式match哪些配置资源能够被该用户访问。
+
+# 查看权限
+	# 查看指定命名空间下的所有用户权限
+		rabbitmqctl  list_permissions
+	# 查看指定命名空间下的所有用户权限
+		rabbitmqctl  list_permissions /abc
+
+# 查看用户权限
+	rabbitmqctl  list_user_permissions admin
+
+# 清除用户权限
+	rabbitmqctl  clear_permissions admin
+	
+```
+
+
+
+## RabbitMQ 命名空间
+
+ 		vhost是RabbitMQ中的一个命名空间，可以限制消息的存放位置利用这个命名空间可以进行权限的控制有点类似Windows中的文件夹一样，在不同的文件夹中存放不同的文件。
+
+```bash
+# 添加vhost:
+	rabbitmqctl add vhost {name}
+	
+# 删除vhost：
+	rabbitmqctl delete vhost {name}
+	
+
+```
+
