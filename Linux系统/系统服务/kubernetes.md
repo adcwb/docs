@@ -1046,6 +1046,16 @@ ca.crt:     1099 bytes
 
 也可以自己手动生成token，注意name不要和已有的重复，可能会覆盖掉别人的token
 
+```bash
+kubectl create serviceaccount dashboard-admin -n kube-system
+kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
+
+
+kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep dashboard-admin | awk '{print $1}')
+```
+
+
+
 dashborad-admin.yaml文件
 
 ```		yaml
