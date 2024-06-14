@@ -340,7 +340,7 @@ class StudentModel2Serializer(serializers.ModelSerializer):
 
 #### 1）ListModelMixin
 
-获取多条数据的 列表视图扩展类，提供`list(request, *args, **kwargs)`方法快速实现列表视图，返回200状态码。
+获取多条数据的列表视图扩展类，提供`list(request, *args, **kwargs)`方法快速实现列表视图，返回200状态码。
 
 该Mixin的list方法会对数据进行过滤和分页。
 
@@ -544,7 +544,7 @@ from rest_framework.mixins import ListModelMixin,CreateModelMixin
 class Students2GenericAPIView(GenericAPIView,ListModelMixin,CreateModelMixin):
     # 本次视图类中要操作的数据[必填]
     queryset = Student.objects.all()
-    # 本次视图类中要调用的默认序列化器[玄天]
+    # 本次视图类中要调用的默认序列化器[选填]
     serializer_class = StudentModelSerializer
 
     def get(self, request):

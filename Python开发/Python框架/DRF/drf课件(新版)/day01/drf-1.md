@@ -331,6 +331,9 @@ class StudentModelSerializer(serializers.ModelSerializer):
 
 - **model** 指明该序列化器处理的数据字段从模型类Student参考生成
 - **fields** 指明该序列化器包含模型类中的哪些字段，'__all__'指明包含所有字段
+- **read_only_fields** 指明序该序列化器哪些字段是只读的
+- **exclude** 指明序该序列化器哪些字段是不需要的，不可以与fields字段同时使用
+- **extra_kwargs** 添加或修改原有的选项参数
 
 
 
@@ -705,7 +708,6 @@ urlpatterns = [
 ]
 
 ```
-
 
 
 

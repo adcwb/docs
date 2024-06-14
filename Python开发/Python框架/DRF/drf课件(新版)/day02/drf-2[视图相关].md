@@ -35,7 +35,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 """drf提供的请求和响应类只能在drf封装过的子视图类中使用，也就是说不能再django.view.View中使用
-    只要类视图直接或者间接继承了APIView，则视图方法中使用的request，就是rest_framework.request.Request，同时，只有在APIVIew的子视图类中才可以使用rest_framework.respone.Response
+    只要类视图直接或者间接继承了APIView，则视图方法中使用的request，就是rest_framework.request.Request，同时，只有在APIVIew的子视图类中才可以使用rest_framework.response.Response
 """
 class StudentAPIView(APIView):
 # class StudentAPIView(View):  #之前的写法
@@ -316,7 +316,7 @@ REST framework 提供了众多的通用视图基类与扩展类，以简化视�
 
 #### 1.2.1.1 APIView
 
-```
+```python
 rest_framework.views.APIView
 ```
 
@@ -350,5 +350,4 @@ class BookListView(APIView):
         serializer = BookInfoSerializer(books, many=True)
         return Response(serializer.data)
 ```
-
 

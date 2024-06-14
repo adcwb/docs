@@ -388,3 +388,167 @@ DaoCloud 通过读取 Dockerfile 内容，和来自代码仓库的源代码，�
 - 您可以在构建过程中看到完整的日志文件，如果构建出现问题，日志文件是排错的首选方式。
 - 考虑到您的镜像会频繁构建，我们在构建服务器端开启了缓存，之前构建过的 Docker Image Layer 不会重新执行构建，完成和传输的速度也会更快。
 - 我们设定了一个构建超时的时间。对于免费用户，构建时间上限是 1 小时，如果 1 小时内您的镜像构建仍未完成（通常是遇到构建问题并死锁），系统将取消您的构建任务；对于付费用户，这个超时时限是 3 小时。
+
+
+
+
+
+### 镜像加速
+
+由于运营商网络原因，会导致您拉取Docker Hub镜像变慢，甚至下载失败。因此需要配置镜像加速器，从而加速官方镜像的下载。
+
+```bash
+```
+
+
+
+
+
+#### 配置Docker运行时镜像加速器
+
+在不同的操作系统下，配置加速器的方式略有不同，下文将介绍主要操作系统的配置方法。
+
+##### **当您的Docker版本较新时**
+
+当您下载安装的Docker Version不低于1.10时，建议通过daemon config进行配置。使用配置文件/etc/docker/daemon.json（没有时新建该文件）。
+
+ 
+
+```json
+{
+    "registry-mirrors": ["<镜像加速器地址>"]
+}            
+```
+
+然后重启Docker Daemon。
+
+##### **当您的Docker版本较旧时**
+
+您需要根据不同的操作系统修改对应的配置文件。
+
+- Ubuntu 12.04 - 14.04
+
+  Ubuntu的配置文件的位置在/etc/default/docker目录下。您只需要在这个配置文件中添加加速器的配置项，重启Docker即可。
+
+   
+
+  ```shell
+  echo "DOCKER_OPTS=\"\$DOCKER_OPTS --registry-mirror=<your accelerate address>\"" | sudo tee -a /etc/default/docker
+  sudo service docker restart            
+  ```
+
+- Ubuntu 15.04 - 15.10
+
+  Ubuntu的配置文件的位置在/etc/systemd/system/docker.service.d/目录下。在这个目录下创建任意的*.conf文件即可作为配置文件。然后在这个配置文件中添加加速器的配置项，之后重启Docker即可。
+
+   
+
+  ```shell
+  sudo mkdir -p /etc/systemd/system/docker.service.d
+  sudo tee /etc/systemd/system/docker.service.d/mirror.conf <<-'EOF'
+  [Service]
+  ExecStart=
+  ExecStart=/usr/bin/docker daemon -H fd:// --registry-mirror=<your accelerate address>
+  EOF
+  sudo systemctl daemon-reload
+  sudo systemctl restart docker            
+  ```
+
+- CentOS 7
+
+  CentOS的配置方式略微复杂，需要先将默认的配置文件（/lib/systemd/system/docker.service）复制到/etc/systemd/system/docker.service。然后再将加速器地址添加到配置文件的启动命令中，之后重启Docker即可。
+
+   
+
+  ```shell
+  sudo cp -n /lib/systemd/system/docker.service /etc/systemd/system/docker.service
+  sudo sed -i "s|ExecStart=/usr/bin/docker daemon|ExecStart=/usr/bin/docker daemon --registry-mirror=<your accelerate address>|g" /etc/systemd/system/docker.service
+  sudo sed -i "s|ExecStart=/usr/bin/dockerd|ExecStart=/usr/bin/dockerd --registry-mirror=<your accelerate address>|g" /etc/systemd/system/docker.service
+  sudo systemctl daemon-reload
+  sudo service docker restart            
+  ```
+
+- Redhat 7
+
+  Red Hat 7配置加速器，需要编辑/etc/sysconfig/docker配置文件。在`OPTIONS`配置项中添加加速器配置`--registry-mirror=<your accelerate address>`。最后执行`sudo service docker restart`命令以重启Docker Daemon。
+
+- Redhat 6/CentOS 6
+
+  在这两个系统上无法直接安装Docker，需要升级内核。
+
+  配置加速器时需要编辑/etc/sysconfig/docker配置文件。 在`other_args`配置项中添加加速器配置`--registry-mirror=<your accelerate address>`。最后执行`sudo service docker restart`命令以重启Docker Daemon。
+
+- Docker Toolbox
+
+  在Windows、Mac系统上使用Docker Toolbox的话，推荐做法是在创建Linux虚拟机的时候，就将加速器的地址配置进去。
+
+   
+
+  ```shell
+  docker-machine create --engine-registry-mirror=<your accelerate address> -d virtualbox default
+  docker-machine env default
+  eval "$(docker-machine env default)"
+  docker info            
+  ```
+
+  如果您已经通过docker-machine创建了虚拟机的话，则需要通过登录该虚拟机来修改配置。
+
+  1. 执行`docker-machine ssh <machine-name>`命令以登录虚拟机。
+  2. 修改/var/lib/boot2docker/profile文件，将`--registry-mirror=<your accelerate address>`添加到`EXTRA_ARGS`中。
+  3. 执行`sudo /etc/init.d/docker restart`命令以重启Docker服务。
+
+#### 配置Containerd运行时镜像加速器
+
+Containerd通过在启动时指定一个配置文件夹，使后续所有镜像仓库相关的配置都可以在里面热加载，无需重启Containerd。
+
+1. 在/etc/containerd/config.toml配置文件中插入如下**config_path**：
+
+    
+
+   ```shell
+   config_path = "/etc/containerd/certs.d"
+   ```
+
+   **说明**
+
+   /etc/containerd/config.toml非默认路径，您可以根据实际使用情况进行调整。
+
+   1. 若已有`plugins."io.containerd.grpc.v1.cri".registry`，则在下面添加一行，注意要有Indent。若没有，则可以在任意地方写入。
+
+       
+
+      ```json
+      [plugins."io.containerd.grpc.v1.cri".registry]
+        config_path = "/etc/containerd/certs.d"
+      ```
+
+   2. 之后需要检查配置文件中是否有原有mirror相关的配置，如下：
+
+       
+
+      ```json
+      [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+        [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+          endpoint = ["https://registry-1.docker.io"]
+      ```
+
+      若有原有mirror相关的配置，则需要清理。
+
+   3. 执行**systemctl restart containerd**重启Containerd。
+
+   4. 若启动失败，执行**journalctl -u containerd**检查为何失败，通常是配置文件仍有冲突导致，您可以依据报错做相应调整。
+
+2. 在步骤一中指定的**config_path**路径中创建docker.io/hosts.toml文件。
+
+   在文件中写入如下配置。
+
+    
+
+   ```json
+   server = "https://registry-1.docker.io"
+   
+   [host."$(镜像加速器地址，如https://xxx.mirror.aliyuncs.com)"]
+     capabilities = ["pull", "resolve", "push"]
+   ```
+
+3. 拉取Docker镜像验证加速是否生效。如未生效，请参见[Reference](https://github.com/containerd/containerd/blob/main/docs/hosts.md)。

@@ -443,6 +443,7 @@ INSTALLED_APPS = [
     'django_filters',  # 需要注册应用，
 ]
 
+# 设置通用过滤后端
 REST_FRAMEWORK = {
     ...
     'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',)
