@@ -1,23 +1,97 @@
 https://mp.weixin.qq.com/s/vwGlL7xNXszTr6mEKLXtZA
 
+## 前言
+
+#### Address Records（A记录）
+
+最常用的记录类型
+
+```bash
+www      IN    A      1.2.3.4
+```
+
+
+
+#### Alias Records（CNAME记录）
+
+常用于为一个已有的 A 记录创建别名。您不能创建一个CNAME记录指向另一个CNAME记录。
+
+```
+mail     IN    CNAME  www
+www      IN    A      1.2.3.4
+```
+
+
+
+#### Mail Exchange Records（MX记录）
+
+常用于定义邮件发往何处。必须指向一个 A 记录，不能是 CNAME。
+
+```
+IN    MX      mail.example.com.
+
+[...]
+
+mail    IN    A       1.2.3.4
+```
+
+
+
+#### Name Server Records（NS记录）
+
+常用于定义哪个服务器提供该区域的拷贝。它必须指向一个 A 记录，不能是 CNAME。
+
+这是定义主、从服务器的地方。私密服务器被有意省略。
+
+```
+IN    NS     ns.example.com.
+
+[...]
+
+ns      IN    A      1.2.3.4
+```
+
+
+
+
+
 ## BIND DNS使用
 
 ### 1、安装
+
+#### Centos安装
 
 ```bash
 # Centos安装
 	yum -y install bind 
 
 # 查看需要修改的配置文件所在路径
-
-
 	rpm -qc bind                   # 查询bind软件配置文件所在路径
 	/etc/named.conf                # 主配置文件
 	/etc/named/rfc1912.zonrs       # 区域配置文件
 	/var/named/named.localhost     # 区域数据配置文件
 ```
 
+#### Ubuntu安装
+
+```bash
+# 安装bind9服务
+$ sudo apt-get install bind9
+
+# 安装相关工具
+$ sudo apt-get install bind9-host dnsutils
+
+# 安装文档(可选)
+$ sudo apt-get install bind9-doc
+```
+
+
+
+
+
 ### 2、配置
+
+#### Centos配置
 
 编辑主配置文件named.conf
 
@@ -43,4 +117,20 @@ zone "80.168.192. in-addr.arpa" IN {        #反向解析的地址倒过来写�
          file "benet. com. zone. local";    #指定区域数据文件为benet.com.zone.local
          allow-update { none; } ;
 ```
+
+
+
+#### Ubuntu配置
+
+BIND9 配置文件被保存在`/etc/bind/`
+
+主配置文件被保存在下列文件中
+
+```
+/etc/bind/named.conf
+/etc/bind/named.conf.options
+/etc/bind/named.conf.local
+```
+
+
 

@@ -1140,3 +1140,175 @@ ret = my_collection.update_many(query, upsert)
 print(ret.modified_count)
 ```
 
+
+
+
+
+# 案例
+
+```python
+
+
+# MongoDB Tools V2
+# 封装一些常用的方法
+
+
+from typing import Dict, Any, List, Optional
+from bson import json_util
+from django.conf import settings
+from pymongo import MongoClient, errors
+from pymongo.collection import Collection
+from pymongo.client_session import ClientSession
+
+
+class MongoDBClient:
+    def __init__(self, config: Dict[str, Any] = None):
+        if config:
+            self.config = config
+        else:
+            self.config = settings.MONGODB_CONFIG
+
+        user = self.config.get("USERNAME")
+        pwd = self.config.get("PASSWORD")
+        hosts = self.config.get("HOSTS")
+        db = self.config.get("DB")
+        auth_db = self.config.get("AUTH_DB", "admin")
+        replica_set = self.config.get("REPLICA_SET", "")
+
+        try:
+            uri = f"mongodb://{user}:{pwd}@{hosts}/{db}?retryWrites=true"
+            if replica_set:
+                uri += f"&w=majority&replicaSet={replica_set}"
+            self.client = MongoClient(uri,
+                                      authSource=auth_db,
+                                      maxPoolSize=50,
+                                      socketTimeoutMS=20000,
+                                      connectTimeoutMS=20000,
+                                      serverSelectionTimeoutMS=20000)
+            self.db = self.client[db]
+            print(f"成功连接到数据库: {db}")
+        except errors.ConnectionFailure as e:
+            print(f"MongoDB连接失败: {e}")
+        except errors.OperationFailure as e:
+            print(f"MongoDB认证失败: {e}")
+
+    def get_collection(self, collection_name: str) -> Collection:
+        return self.db[collection_name]
+
+    def insert_one(self, collection_name: str, document: Dict[str, Any],
+                   session: Optional[ClientSession] = None) -> Any:
+        try:
+            collection = self.get_collection(collection_name)
+            result = collection.insert_one(document, session=session)
+            print(f"插入文档成功，ID: {result.inserted_id}")
+            return result.inserted_id
+        except errors.PyMongoError as e:
+            print(f"插入文档失败: {e}")
+
+    def insert_many(self, collection_name: str, documents: List[Dict[str, Any]],
+                    session: Optional[ClientSession] = None) -> Any:
+        try:
+            collection = self.get_collection(collection_name)
+            result = collection.insert_many(documents, session=session)
+            print(f"插入多个文档成功，IDs: {result.inserted_ids}")
+            return result.inserted_ids
+        except errors.PyMongoError as e:
+            print(f"插入多个文档失败: {e}")
+
+    def find_one(self, collection_name: str, query: Dict[str, Any], session: Optional[ClientSession] = None) -> str:
+        try:
+            collection = self.get_collection(collection_name)
+            document = collection.find_one(query, session=session)
+            print(f"查询结果: {document}")
+            return json_util.dumps(document)
+        except errors.PyMongoError as e:
+            print(f"查询失败: {e}")
+
+    def find_many(self, collection_name: str, query: Dict[str, Any], limit: int = 0, skip: int = 0,
+                  sort: List[tuple] = None, session: Optional[ClientSession] = None) -> str:
+        try:
+            collection = self.get_collection(collection_name)
+            cursor = collection.find(query, session=session).limit(limit).skip(skip)
+            if sort:
+                cursor = cursor.sort(sort)
+            documents = list(cursor)
+            print(f"查询到 {len(documents)} 个结果")
+            return json_util.dumps(documents)
+        except errors.PyMongoError as e:
+            print(f"查询失败: {e}")
+
+    def update_one(self, collection_name: str, query: Dict[str, Any], update: Dict[str, Any],
+                   session: Optional[ClientSession] = None) -> Any:
+        try:
+            collection = self.get_collection(collection_name)
+            result = collection.update_one(query, {'$set': update}, session=session)
+            print(f"更新 {result.modified_count} 个文档")
+            return result.modified_count
+        except errors.PyMongoError as e:
+            print(f"更新文档失败: {e}")
+
+    def update_many(self, collection_name: str, query: Dict[str, Any], update: Dict[str, Any],
+                    session: Optional[ClientSession] = None) -> Any:
+        try:
+            collection = self.get_collection(collection_name)
+            result = collection.update_many(query, {'$set': update}, session=session)
+            print(f"更新 {result.modified_count} 个文档")
+            return result.modified_count
+        except errors.PyMongoError as e:
+            print(f"更新多个文档失败: {e}")
+
+    def delete_one(self, collection_name: str, query: Dict[str, Any], session: Optional[ClientSession] = None) -> Any:
+        try:
+            collection = self.get_collection(collection_name)
+            result = collection.delete_one(query, session=session)
+            print(f"删除 {result.deleted_count} 个文档")
+            return result.deleted_count
+        except errors.PyMongoError as e:
+            print(f"删除文档失败: {e}")
+
+    def delete_many(self, collection_name: str, query: Dict[str, Any], session: Optional[ClientSession] = None) -> Any:
+        try:
+            collection = self.get_collection(collection_name)
+            result = collection.delete_many(query, session=session)
+            print(f"删除 {result.deleted_count} 个文档")
+            return result.deleted_count
+        except errors.PyMongoError as e:
+            print(f"删除多个文档失败: {e}")
+
+    def close(self):
+        self.client.close()
+        print("关闭数据库连接")
+
+    def start_session(self) -> ClientSession:
+        """
+        开启 MongoDB 会话
+        :return: 返回一个新的 MongoDB 会话
+        causal_consistency=True 保持因果一致性
+        """
+        return self.client.start_session(causal_consistency=True)
+
+    def with_transaction(self, operations: List, session: Optional[ClientSession] = None):
+        """
+        使用事务执行一组操作
+        :param operations: 要在事务中执行的操作列表
+        :param session: MongoDB 会话
+        :return: 执行结果
+        """
+        if not session:
+            session = self.start_session()
+
+        try:
+            with session.start_transaction():
+                results = []
+                for operation in operations:
+                    result = operation(session)
+                    results.append(result)
+                return results
+        except errors.PyMongoError as e:
+            print(f"事务执行失败: {e}")
+            session.abort_transaction()
+        finally:
+            session.end_session()
+
+```
+

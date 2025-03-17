@@ -4,6 +4,19 @@ Docker
 # etcd安装
 docker run -itd -p 2379:2379 -p 2380:2380 --env ALLOW_NONE_AUTHENTICATION=yes --env ETCD_ADVERTISE_CLIENT_URLS=http://etcd-server:2379 --name etcd bitnami/etcd:latest
 
+# etcd安装
+docker run -itd --name etcd \
+  --user 1001:1001 \
+  -v /data/etcd/data:/bitnami/etcd/data \
+  -e ALLOW_NONE_AUTHENTICATION=no \
+  -e ETCD_CLIENT_CERT_AUTH=false \
+  -e ETCD_ROOT_PASSWORD=R0Lpe8u7sCXqKDOSzrWAhGgMcwv2iJ6F  \
+  -e ETCD_LISTEN_CLIENT_URLS="http://0.0.0.0:2379" \
+  -e ETCD_ADVERTISE_CLIENT_URLS="http://127.0.0.1:2379" \
+  -p 2379:2379 -p 2380:2380 \
+  bitnami/etcd:latest
+  
+  
 # etcdkeeper
 docker run -itd --name etcd-keeper -p 8000:8080 -e ETCD_SERVER=http://192.168.202.206:2379 evildecay/etcdkeeper
 
@@ -27,6 +40,38 @@ docker run -d \
   
 # Redis
 docker run -itd --name redis -p 31641:6379 redis --requirepass "20221121W1m2.x"
+
+
+docker run -itd --name mongodb \
+-p 27017:27017 \
+-v /data/mongodb/mongod.conf:/etc/mongod.conf \
+-v /data/mongodb/data:/data/db \
+-v /data/mongodb/logs:/var/log/mongodb \
+-e MONGO_INITDB_ROOT_USERNAME=admin \
+-e MONGO_INITDB_ROOT_PASSWORD="ROj4CN0hFWZ6Dp1dLQ2Hgxbfiy7YPotS"\
+--restart=always  \
+bitnami/mongodb:latest
+
+
+docker run --name mongodb -p 27017:27017 -itd \
+    -e MONGO_INITDB_ROOT_USERNAME=root \
+    -e MONGO_INITDB_ROOT_PASSWORD="ROj4CN0hFWZ6Dp1dLQ2Hgxbfiy7YPotS" \
+    mongo
+    
+
+
+# influxDB
+docker run -itd -p 8086:8086 \
+     --name influxdb2 \
+     -v /data/influxdb2/data:/var/lib/influxdb2 \
+     -v /data/influxdb2/config:/etc/influxdb2 \
+     -e DOCKER_INFLUXDB_INIT_MODE=setup \
+     -e DOCKER_INFLUXDB_INIT_USERNAME="admin" \
+     -e DOCKER_INFLUXDB_INIT_PASSWORD="dy1FWlEsXWZIfk86MUxhY2BTKCNOfT0vaS4/YktKcjk=" \
+     -e DOCKER_INFLUXDB_INIT_ADMIN_TOKEN="M3IvXz19OCZCdUFmSkdeSExDO3Q8YGJ6LDRSWk4+Iy4=" \
+     -e DOCKER_INFLUXDB_INIT_ORG="Bsi" \
+     -e DOCKER_INFLUXDB_INIT_BUCKET="opscenter" \
+     influxdb:latest
 
 ```
 

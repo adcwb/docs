@@ -1,46 +1,67 @@
-if语句
+### if语句
+
+>注意：
+>
+>​	Python语言中，为了区分if语句中判断条件执行时和else区分，所以要求缩进，而别的语言由于有大括号进行区分，所以不需要缩进，执行的动作可以有多条；tab键不等于四个空格，缩进级别必须要保持一致；官方规定缩进四个空格；此外，if语句由上到下判断，当有一个条件判断成功后，其他的语句不再判断
+>
+>
+>
+>​	if语句原则上可以无限的嵌套. 但是在实际开发中. 尽量不要超过三层嵌套
+
+
+
+#### 基本语法
 
 ```python
 if语句基本语法：
-    if    判断条件:                                                                         		符合条件执行的动作
-    elif   判断条件:  
-        执行的动作                                                                 
+    if  判断条件:
+        符合条件执行的动作
+    elif  判断条件:  
+        符合条件执行的动作                                                                 
     else:
-        执行的动作
-			
-	Python语言中，为了区分if语句中判断条件执行时和else区分，所以要求缩进，而别的语言由于有大括号进行区分，所以不需要缩进，执行的动作可以有多条；tab键不等于四个空格，缩进级别必须要保持一致；官方规定缩进四个空格；此外，if语句由上到下判断，当有一个条件判断成功后，其他的语句不再判断
-			
-	if语句可以无限的嵌套. 但是在实际开发中. 尽量不要超过三层嵌套
-			
+        都不符合执行的动作
+```
+
+
+
+示例
+
+```python
+	
     示例：
         age = 19
         is_beautiful = True
         star = '水平座'
 
         if 18 < age < 20 and is_beautiful and star == '水平座':
-            print('开始表白。。。。。')
+            print('你好，很高兴认识你。。。。。')
             is_successful = True
             if is_successful:
-                print('两个从此过上没羞没臊的生活。。。')
+                print('认识了新朋友。。。')
         elif 10 < age <18: 
-            print('你太小了，我们不合适。。。。')
+            print('你太小了。。。。')
 
         else:
-            print('阿姨好，我逗你玩呢，深藏功与名')
-        print('对不起，系统无法确认性别。。。。')
+            print('所有条件都不满足')
 
 ```
 
-while循环
+### while循环
+
+#### 基本语法
+
+```python
+基本语法：
+	while   条件：
+		代码
+	else：
+		代码
+```
+
+示例
 
 ```python
 whihe循环：
-
-    基本语法：
-        while   条件：
-            代码
-        else：
-            代码
 
     退出while循环的两种方式
         方式一：
@@ -75,7 +96,9 @@ whihe循环：
 
 ```
 
-for循环
+
+
+### for循环
 
 ```python
 for循环：
@@ -99,4 +122,105 @@ for循环：
 	
 
 ```
+
+
+
+### 三元表达式
+
+```python
+result = True if condition else False
+if后跟条件，条件为真返回if左侧的结果，当条件为假则返回else的结果，其等价于下面的示例：
+
+x = 1  
+y = 2  
+if x < y:  
+    print(x)  
+else:  
+    print(y)  
+res = x if x < y else y  
+```
+
+
+
+### 列表推导式
+
+```python
+variable = [expression for value in iterable if condition]    
+  变量        表达式       收集器              条件    
+```
+
+示例：
+
+```python
+# 基本列表推导式
+l = [i for i in range(10)]
+print(l)  # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+# 带if条件的
+l = [i ** 2 for i in range(1, 21) if i % 2 == 0]
+print(l)  # [4, 16, 36, 64, 100, 144, 196, 256, 324, 400]
+
+# 嵌套列表
+l = [[col for col in range(3)] for rows in range(5)]
+print(l)  # [[0, 1, 2], [0, 1, 2], [0, 1, 2], [0, 1, 2], [0, 1, 2]]
+
+l = [x + y for x in 'abc' for y in 'ABC']
+print(l)  # ['aA', 'aB', 'aC', 'bA', 'bB', 'bC', 'cA', 'cB', 'cC']
+
+注意，不用一味的渴求简便，要注意可读性。
+```
+
+
+
+### 集合推导式
+
+集合也有其推导式，用法与列表类似，只要将中括号换为大花括号即可。
+
+```python
+variable = {expression for value in iterable if condition}   
+  变量        表达式       收集器              条件 
+```
+
+示例
+
+```python
+s = {i for i in range(10)}
+print(s)  # {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+
+s1 = {i for i in range(10) if i % 2 == 0}
+print(s1)  # {0, 8, 2, 4, 6}
+
+s2 = {i ** 2 for i in range(10) if i % 2 == 0}
+print(s2)  # {0, 8, 2, 4, 6}
+
+s3 = {x + y for x in 'abc' for y in 'ABC'}
+print(s3)  # {'aB', 'bA', 'aA', 'cC', 'bB', 'cA', 'cB', 'bC', 'aC'}
+```
+
+
+
+### 字典推导式
+
+```python
+d = {k: '我是value啦' for k in range(5)}
+print(d)  # {0: '我是value啦', 1: '我是value啦', 2: '我是value啦', 3: '我是value啦', 4: '我是value啦'}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
