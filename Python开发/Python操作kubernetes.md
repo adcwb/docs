@@ -488,10 +488,12 @@ print("Service list. status='%s'" % resp)
 #### 示例
 
 ```python
+import json
+
 import yaml
 from kubernetes import client, config, utils
 from kubernetes.client.rest import ApiException
-from kubernetes.client import ApiClient
+from kubernetes.client import ApiClient, V1Deployment
 from integration.models import K8sCluster
 from utils.tools.SpecialString import CryptographyV2
 
@@ -515,6 +517,7 @@ class KubernetesDeployer:
         self.coreapi_instance = client.CoreV1Api()
         self.storageapi_instance = client.StorageV1Api()
         self.networking_instance = client.NetworkingV1Api()
+        self.batch_instance = client.BatchV1Api()
 
 
     def get_api_instance(self):
@@ -532,6 +535,10 @@ class KubernetesDeployer:
     def get_networking_instance(self):
         """返回实例化的NetworkingV1Api"""
         return self.networking_instance
+
+    def get_batch_instance(self):
+        """返回实例化的BatchV1Api"""
+        return self.batch_instance
 
     def apply(self, resource_type, namespace, resource_yaml):
         """通用部署接口，通过接收资源类型和YAML自动部署"""
@@ -562,15 +569,22 @@ class KubernetesDeployer:
         """应用Deployment到K8s集群"""
 
         try:
-            deployment = client.ApiClient().deserialize(deployment_yaml, 'V1Deployment')
+            deployment = client.V1Deployment(
+                api_version=deployment_yaml.get('apiVersion', 'v1'),
+                kind=deployment_yaml.get('kind', 'Service'),
+                metadata=deployment_yaml.get('metadata', {}),
+                spec=deployment_yaml.get('spec', {})
+            )
+
             # 若存在则更新，否则创建
             try:
                 existing = self.api_instance.read_namespaced_deployment(
-                    name=deployment.metadata.name,
+                    name=deployment_yaml.get("metadata").get("name"),
                     namespace=namespace
                 )
+
                 result = self.api_instance.patch_namespaced_deployment(
-                    name=deployment.metadata.name,
+                    name=deployment_yaml.get("metadata").get("name"),
                     namespace=namespace,
                     body=deployment
                 )
@@ -591,14 +605,21 @@ class KubernetesDeployer:
     def apply_service(self, namespace, service_yaml):
         """ 应用Service到K8s集群"""
         try:
-            service = client.ApiClient().deserialize(service_yaml, 'V1Service')
+            service = client.V1Service(
+                api_version=service_yaml.get('apiVersion', 'apps/v1'),
+                kind=service_yaml.get('kind', 'Deployment'),
+                metadata=service_yaml.get('metadata', {}),
+                spec=service_yaml.get('spec', {})
+            )
+
             try:
                 existing = self.coreapi_instance.read_namespaced_service(
-                    name=service.metadata.name,
+                    name=service_yaml.get("metadata").get("name"),
                     namespace=namespace
                 )
+
                 result = self.coreapi_instance.patch_namespaced_service(
-                    name=service.metadata.name,
+                    name=service_yaml.get("metadata").get("name"),
                     namespace=namespace,
                     body=service
                 )
@@ -619,16 +640,21 @@ class KubernetesDeployer:
     def apply_storage(self, namespace, pvc_yaml):
         """部署PVC资源"""
         try:
-            pvc = client.ApiClient().deserialize(pvc_yaml, 'V1PersistentVolumeClaim')
+            pvc = client.V1PersistentVolumeClaim(
+                api_version=pvc_yaml.get('apiVersion', 'v1'),
+                kind=pvc_yaml.get('kind', 'PersistentVolumeClaim'),
+                metadata=pvc_yaml.get('metadata', {}),
+                spec=pvc_yaml.get('spec', {})
+            )
 
             try:
                 pvc = self.coreapi_instance.read_namespaced_persistent_volume_claim(
-                    name=pvc.metadata.name,
+                    name=pvc_yaml.get("metadata").get("name"),
                     namespace=namespace
                 )
                 # 更新
                 result = self.coreapi_instance.patch_namespaced_persistent_volume_claim(
-                    name=pvc.metadata.name,
+                    name=pvc_yaml.get("metadata").get("name"),
                     namespace=namespace,
                     body=pvc
                 )
@@ -651,16 +677,21 @@ class KubernetesDeployer:
     def apply_ingress(self, namespace, ingress_yaml):
         """部署Ingress资源"""
         try:
-            ingress = client.ApiClient().deserialize(ingress_yaml, 'V1Ingress')
+            ingress = client.V1Ingress(
+                api_version=ingress_yaml.get('apiVersion', 'networking.k8s.io/v1'),
+                kind=ingress_yaml.get('kind', 'Ingress'),
+                metadata=ingress_yaml.get('metadata', {}),
+                spec=ingress_yaml.get('spec', {})
+            )
 
             try:
                 ingress = self.networking_instance.read_namespaced_ingress(
-                    name=ingress.metadata.name,
+                    name=ingress_yaml.get("metadata").get("name"),
                     namespace=namespace
                 )
                 # 更新
                 result = self.networking_instance.patch_namespaced_ingress(
-                    name=ingress.metadata.name,
+                    name=ingress_yaml.get("metadata").get("name"),
                     namespace=namespace,
                     body=ingress
                 )

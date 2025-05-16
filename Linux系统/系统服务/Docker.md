@@ -552,3 +552,66 @@ Containerd通过在启动时指定一个配置文件夹，使后续所有镜像�
    ```
 
 3. 拉取Docker镜像验证加速是否生效。如未生效，请参见[Reference](https://github.com/containerd/containerd/blob/main/docs/hosts.md)。
+
+
+
+
+
+
+
+### 查询Docker创建命令
+
+给定一个现有的 docker 容器，打印运行其副本所需的命令行。
+
+仓库地址：https://github.com/lavie/runlike
+
+安装：`pip install runlike`
+
+
+
+使用示例：`runlike -p $DOCKER_ID OR $DOCKER_NAME`
+
+- -p: 将命令拆分成多行显示
+
+```bash
+root@node3:~# runlike -p casdoor
+docker run --name=casdoor \
+	--hostname=5b0a52f375d1 \
+	--env='dataSourceName=root:Kaka_2022@tcp(192.168.202.206:32577)/' \
+	--env=driverName=mysql \
+	--workdir=/ \
+	-p 8000:8000 \
+	--runtime=runc \
+	--detach=true \
+	-t \
+	casbin/casdoor:20241008-v1.723.0-dirty \
+	/docker-entrypoint.sh
+
+```
+
+给它提供输出`docker inspect`也是可行的：
+
+`docker inspect <container-name> | runlike --stdin`
+
+```bash
+root@node3:~# docker inspect casdoor | runlike --stdin -p
+docker run --name=casdoor \
+	--hostname=5b0a52f375d1 \
+	--entrypoint /bin/bash \
+	--env='dataSourceName=root:Kaka_2022@tcp(192.168.202.206:32577)/' \
+	--env=driverName=mysql \
+	--env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+	--env=BUILDX_ARCH=linux_amd64 \
+	--workdir=/ \
+	-p 8000:8000 \
+	--label='MAINTAINER=https://casdoor.org/' \
+	--runtime=runc \
+	--detach=true \
+	-t \
+	casbin/casdoor:20241008-v1.723.0-dirty \
+	/docker-entrypoint.sh
+
+```
+
+
+

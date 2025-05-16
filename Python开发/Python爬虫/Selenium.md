@@ -201,6 +201,154 @@ driver.find_element_by_css_selector('xxx')  # 样式选择器
 
 
 
+### selenium操作远程浏览器
+
+镜像地址：https://hub.docker.com/u/selenium
+
+仓库地址：https://github.com/SeleniumHQ/docker-selenium
+
+官方文档：http://selenium.dev/zh-cn/documentation/
+
+
+
+>- Hub：负责将从 WebDriver 接收的浏览器操作指令分发至对应的 Node，并将从 Node 接收的结果返回给 WebDriver。
+>- Node：负责接收来自 Hub 的指令，并调用浏览器驱动来完成页面操作。
+
+Hub 与 Node 可位于不同的主机，通过 HTTP 协议来通信。
+
+
+
+| 镜像名称                          | 功能说明                                                     |
+| :-------------------------------- | ------------------------------------------------------------ |
+| selenium/base                     | 包含了Java和SeleniumServer的基础镜像，这个一般用不上         |
+| selenium/hub                      | SeleniumGrid运行方式中的Hub镜像，需要结合node-xxx或node-xxx-debug使用 |
+| selenium/node-base                | 包含了虚拟桌面的SeleniumGrid运行方式中的Node基础镜像，这个一般用不上 |
+| selenium/node-chrome              | SeleniumGrid运行方式中的带Chrome的Node镜像                   |
+| selenium/node-firefox             | SeleniumGrid运行方式中的带Firefox的Node镜像                  |
+| selenium/node-edge                | SeleniumGrid运行方式中的带Edge的Node镜像                     |
+| selenium/node-chromium            | SeleniumGrid运行方式中的带Chromium的Node镜像                 |
+| selenium/node-chrome-debug        | SeleniumGrid运行方式中的带Chrome和VNC服务器的Node镜像        |
+| selenium/node-firefox-debug       | SeleniumGrid运行方式中的带Firefox和VNC服务器的Node镜像       |
+| selenium/standalone-chrome        | 单独运行Selenium的带Chrome的镜像                             |
+| selenium/standalone-firefox       | 单独运行Selenium的带Firefox的镜像                            |
+| selenium/standalone-edge          | 单独运行Selenium的带Edge的镜像                               |
+| selenium/standalone-chromium      | 单独运行Selenium的带Chromium的镜像                           |
+| selenium/standalone-chrome-debug  | 单独运行Selenium的带Chrome和VNC服务器的镜像                  |
+| selenium/standalone-firefox-debug | 单独运行Selenium的带Firefox和VNC服务器的镜像                 |
+
+#### jar文件启动
+
+Grid `jar` 文件依赖的 Java 版本为 11 或以上。
+
+欲使用 Grid，Standalone 模式是最简单快速的一种。
+
+可以从 [github.com/SeleniumHQ/selenium](https://github.com/SeleniumHQ/selenium/releases/latest) 发布页面下载最新的`selenium-server-<version>.jar`文件，然后使用如下命令启动：
+
+```bash
+java -jar selenium-server-<version>.jar standalone
+```
+
+Grid 启动完成后，打开网址`http://localhost:4444`可以看到可使用的所有浏览器类型以及会话的状态。
+
+使用 Hub 与 Node 分工的方式来启动 Grid 的命令如下：
+
+```bash
+# 启动 Hub
+java -jar selenium-server-<version>.jar hub
+
+# 启动 Node 1
+java -jar selenium-server-<version>.jar node --port 5555
+
+# 启动 Node 2
+java -jar selenium-server-<version>.jar node --port 6666
+
+```
+
+
+
+
+
+#### Docker部署
+
+```bash
+
+JPN（日本）,KOR（韩国）, MYS（马来西亚）,IDN（印度尼西亚）, BRN（文莱）, PHL（菲律宾）, SGP（新加坡）, MEX（墨西哥），
+THA（泰国）, VNM（越南）, AUS（澳大利亚）, NZL（新西兰）, PNG（巴布亚新几内亚）, CHL（智利）, PER（秘鲁），RUS(俄罗斯）。其他经济体的英文缩写是:CHN（中国）, HKG(中国香港)，TWN（中国台湾），USA(美国),CAN（加拿大)
+
+```
+
+
+
+启动hub
+
+```bash
+docker run -d --name myhub -p 5555:4444 selenium/hub
+```
+
+将selenium/node-chrome-debug节点容器与容器myhub之间链接起来(--link是链接别名为hub的容器)
+
+```bash
+docker run -d --name node -p 5902:5900 --link myhub:hub selenium/node-chrome-debug
+```
+
+创建firefox node容器，将selenium/node-firefox-debug容器与容器myhub之间链接起来(--link是链接别名为hub的容器)
+
+```bash
+docker run -d --name node1 -p 5901:5900 --link myhub:hub selenium/node-firefox-debug
+```
+
+使用虚拟机ip+映射端口打开http://192.168.222.132:5555/grid/console，这时候selenium grid环境已经部署完成，这就是在docker里部署的好处，用容器的隔离，省去好几台设备部署node，
+
+
+
+Viewer远程链接：debug结尾的镜像都带有VNC服务端，本机安装VNC客户端，即可远程连接（密码是secret）
+
+
+
+示例部署：
+
+```bash
+# 1、部署HUB
+docker run -d --name tencent-sgp-hub -p 4442-4444:4442-4444  selenium/hub
+
+# 2、部署Node节点-chrome浏览器
+
+docker run -d \
+  --name tencent-sgp-selenium-chrome \
+  -p 5900:5900 \
+  -e SE_EVENT_BUS_HOST=172.17.0.2 \
+  -e SE_EVENT_BUS_PUBLISH_PORT=4442 \
+  -e SE_EVENT_BUS_SUBSCRIBE_PORT=4443 \
+  -v /dev/shm:/dev/shm \
+  --shm-size="2g" \
+  selenium/node-chrome
+  
+# 参数说明
+	-d: 以守护进程（后台）模式运行容器
+	--name tencent-sgp-selenium-chrome: 为容器指定名称（便于管理）
+	-p 5900:5900: 端口映射, 主机5900 → 容器5900（VNC服务端口）
+	-e SE_EVENT_BUS_HOST=10.3.0.9: 设置事件总线主机地址（指向Hub节点IP）
+	-e SE_EVENT_BUS_PUBLISH_PORT=4442: 事件总线发布端口（与Hub配置一致）
+	-e SE_EVENT_BUS_SUBSCRIBE_PORT=4443: 事件总线订阅端口（与Hub配置一致）
+	-e SE_NODE_MAX_SESSIONS=5: 限制单个节点的最大会话数
+	-v /dev/shm:/dev/shm: 共享内存卷挂载, 解决浏览器内存不足问题
+	--shm-size="2g": 设置容器共享内存大小为2GB, Chrome/Firefox 需要较大共享内存
+	--restart unless-stopped: 重启策略, 除非手动停止，否则自动重启
+	selenium/node-edge:4.11.0: 使用的镜像,包含Edge浏览器和WebDriver
+```
+
+
+
+
+
+#### k8s部署
+
+yaml文件参考：https://github.com/kubernetes/examples/tree/master/staging/selenium
+
+
+
+
+
 ### selenium和爬虫之间的关联
 
 - 可以便捷的捕获到动态加载的数据(可见即可得)
