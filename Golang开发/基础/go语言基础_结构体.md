@@ -341,6 +341,304 @@ fmt.Println(unsafe.Sizeof(v))  // 0
 
 
 
+### 结构体标签
+
+通常可以在struct中的每一个field后面添加一段额外的注释或者说明，来引导struct的encoding到某种格式中，这部分额外的注释说明，我们称之为struct中的field tag
+
+#### Json
+
+- `json:"fieldname"`：指定Json字段名
+
+- omitempty：空值时不序列化
+- `string`：数字转为字符串格式
+- `-`：忽略字段
+
+```golang
+type User struct {
+    ID       int    `json:"id"`                      // 指定JSON字段名
+    Username string `json:"username,omitempty"`      // 空值时忽略
+    Password string `json:"-"`                       // 忽略字段
+    Age      int    `json:"age,string"`              // 数字转为字符串
+}
+```
+
+
+
+#### Gorm
+
+- `primaryKey`：主键
+- `uniqueIndex`：唯一索引
+- `default:value`：默认值
+- `size:n`：字段长度
+- `not null`：非空约束
+- `check:condition`：检查约束
+
+```go
+type Product struct {
+    gorm.Model
+    Code  string `gorm:"type:varchar(100);uniqueIndex"` // 类型和唯一索引
+    Price uint   `gorm:"default:100"`                   // 默认值
+    Stock int    `gorm:"check:stock > 0"`               // 检查约束
+}
+```
+
+
+
+#### Form
+
+- `required`：必填字段
+- `email`：邮箱格式验证
+- `min/max`：最小/最大长度
+- `gte/lte`：大于等于/小于等于
+
+```go
+type LoginForm struct {
+    Email    string `form:"email" binding:"required,email"`    // 必填且是邮箱格式
+    Password string `form:"password" binding:"required,min=6"` // 必填且最小6位
+    Age      int    `form:"age" binding:"gte=18"`              // 必须≥18
+}
+```
+
+
+
+#### Oneof
+
+```go
+// 限制字段值必须是给定选项之一
+
+type Product struct {
+    Status string `json:"status" binding:"oneof=active inactive discontinued"`
+}
+```
+
+
+
+#### Bson
+
+- `inline`：嵌入结构体
+- `omitempty`：空值时忽略
+- `minsize`：使用最小存储格式
+- `truncate`：截断超过长度的字符串
+
+```go
+type User struct {
+    ID       primitive.ObjectID `bson:"_id,omitempty"` // 文档ID，空时忽略
+    Username string            `bson:"username"`      // 字段映射
+    Password string            `bson:"-"`             // 忽略字段
+    Address Address `bson:"address,inline"` // 平铺嵌入
+}
+```
+
+
+
+
+
+#### Xml
+
+```go
+type Person struct {
+    XMLName xml.Name `xml:"person"`
+    Name    string   `xml:"name"`
+    Age     int      `xml:"age,attr"` // 作为属性而非元素
+}
+```
+
+
+
+#### Yaml
+
+```go
+type Config struct {
+    Host string `yaml:"host"`
+    Port int    `yaml:"port"`
+}
+```
+
+
+
+#### 常用验证标签
+
+|    标签    |       说明       |               示例               |
+| :--------: | :--------------: | :------------------------------: |
+| `required` |     必填字段     |       `binding:"required"`       |
+|   `min`    | 最小值/最小长度  |        `binding:"min=1"`         |
+|   `max`    | 最大值/最大长度  |       `binding:"max=100"`        |
+|   `len`    |     固定长度     |        `binding:"len=11"`        |
+|    `eq`    |       等于       |        `binding:"eq=10"`         |
+|    `ne`    |      不等于      |         `binding:"ne=0"`         |
+|    `gt`    |       大于       |         `binding:"gt=0"`         |
+|   `gte`    |     大于等于     |        `binding:"gte=1"`         |
+|    `lt`    |       小于       |        `binding:"lt=100"`        |
+|   `lte`    |     小于等于     |       `binding:"lte=100"`        |
+|  `oneof`   |     限定选项     | `binding:"oneof=red green blue"` |
+| `alphanum` | 只允许字母和数字 |       `binding:"alphanum"`       |
+|  `alpha`   |    只允许字母    |        `binding:"alpha"`         |
+| `numeric`  |    只允许数字    |       `binding:"numeric"`        |
+|  `email`   |   邮箱格式验证   |        `binding:"email"`         |
+|   `url`    |   URL格式验证    |         `binding:"url"`          |
+|   `uuid`   |   UUID格式验证   |         `binding:"uuid"`         |
+| `datetime` | 日期时间格式验证 | `binding:"datetime=2006-01-02"`  |
+
+
+
+### 自定义结构体标签
+
+#### 基本实现原理
+
+Golang 通过反射机制读取结构体标签，格式为：
+
+```go
+type Struct struct {
+    Field type `key1:"value1" key2:"value2"`
+}
+```
+
+
+
+#### 自定义标签处理示例
+
+实现一个自定义的 `default`标签处理器：
+
+```go
+package main
+
+import (
+    "fmt"
+    "reflect"
+    "strconv"
+)
+
+type User struct {
+    Name string `default:"Guest"`
+    Age  int    `default:"18"`
+}
+
+func SetDefaults(data interface{}) error {
+    val := reflect.ValueOf(data).Elem()
+    typ := val.Type()
+
+    for i := 0; i < val.NumField(); i++ {
+        field := val.Field(i)
+        tag := typ.Field(i).Tag.Get("default")
+
+        if tag != "" && field.IsZero() {
+            switch field.Kind() {
+            case reflect.String:
+                field.SetString(tag)
+            case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+                if num, err := strconv.ParseInt(tag, 10, 64); err == nil {
+                    field.SetInt(num)
+                }
+            case reflect.Bool:
+                if b, err := strconv.ParseBool(tag); err == nil {
+                    field.SetBool(b)
+                }
+            // 可扩展其他类型...
+            }
+        }
+    }
+    return nil
+}
+
+func main() {
+    user := User{}
+    SetDefaults(&user)
+    fmt.Printf("%+v\n", user) // 输出: {Name:Guest Age:18}
+}
+```
+
+#### 高级自定义标签处理器
+
+实现支持多种功能的标签处理器：
+
+```go
+package customtags
+
+import (
+    "reflect"
+    "strings"
+)
+
+type TagProcessor struct {
+    TagName string
+    Handlers map[string]func(reflect.Value, string) error
+}
+
+func NewProcessor(tagName string) *TagProcessor {
+    return &TagProcessor{
+        TagName: tagName,
+        Handlers: make(map[string]func(reflect.Value, string) error),
+    }
+}
+
+func (p *TagProcessor) RegisterHandler(
+    typeKind reflect.Kind, 
+    handler func(reflect.Value, string) error,
+) {
+    p.Handlers[typeKind.String()] = handler
+}
+
+func (p *TagProcessor) Process(data interface{}) error {
+    val := reflect.ValueOf(data).Elem()
+    typ := val.Type()
+
+    for i := 0; i < val.NumField(); i++ {
+        field := val.Field(i)
+        tag := typ.Field(i).Tag.Get(p.TagName)
+        
+        if tag == "" || !field.IsZero() {
+            continue
+        }
+
+        handler, exists := p.Handlers[field.Kind().String()]
+        if !exists {
+            continue
+        }
+
+        if err := handler(field, tag); err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
+// 使用示例
+func ExampleUsage() {
+    type Config struct {
+        Host string `custom:"localhost"`
+        Port int    `custom:"8080"`
+    }
+
+    processor := NewProcessor("custom")
+    
+    processor.RegisterHandler(reflect.String, func(f reflect.Value, v string) error {
+        f.SetString(v)
+        return nil
+    })
+    
+    processor.RegisterHandler(reflect.Int, func(f reflect.Value, v string) error {
+        i, err := strconv.Atoi(v)
+        if err != nil {
+            return err
+        }
+        f.SetInt(int64(i))
+        return nil
+    })
+
+    cfg := Config{}
+    if err := processor.Process(&cfg); err != nil {
+        panic(err)
+    }
+    fmt.Printf("%+v", cfg) // 输出: {Host:localhost Port:8080}
+}
+```
+
+
+
+
+
+
+
 ### 构造函数
 
 Go语言的结构体没有构造函数，我们可以自己实现。 例如，下方的代码就实现了一个`person`的构造函数。 因为`struct`是值类型，如果结构体比较复杂的话，值拷贝性能开销会比较大，所以该构造函数返回的是结构体指针类型。

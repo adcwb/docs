@@ -233,8 +233,11 @@ git rm --cached 1.html 2.html
 
 要把文件/目录提交到版本库必须先把文件/目录添加到暂存库才可以。所以上述的3.html可以提交，1.html和2.html是不能被提交的。
 
-```
+```bash
 git commit -am "版本描述"
+
+# 设置本地提交时间
+git commit -m "chore: 配置文件调整" --date="2025-08-26T10:24:32.000Z"
 ```
 
 

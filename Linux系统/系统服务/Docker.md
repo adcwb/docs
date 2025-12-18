@@ -615,3 +615,90 @@ docker run --name=casdoor \
 
 
 
+### 构建空镜像
+
+我们在使用Dockerfile构建docker镜像时，一种方式是使用官方预先配置好的容器镜像。优点是我们不用从头开始构建，节省了很多工作量，但付出的代价是需要下载很大的镜像包。若是需要构建的镜像尺寸尽可能的小，就需要用到scratch 镜像
+
+scratch 的 Docker 官方镜像地址：https://hub.docker.com/_/scratch
+
+官方说明：该镜像是一个空的镜像，可以用于构建基础镜像（例如 Debian、Busybox）或超小镜像，可以说是真正的从零开始构建属于自己的镜像。要知道，一个官方的ubuntu镜像有60MB+，CentOS镜像有70MB+。可以把一个可执行文件扔进来直接执行。
+
+
+
+#### 查看空镜像
+
+可以通过命令`docker search scratch`查询到该镜像，但是无法直接pull下载
+
+scratch 是一个 search 得到，但是 pull 不了的特殊镜像
+
+```bash
+# docker pull scratch
+Using default tag: latest
+Error response from daemon: 'scratch' is a reserved name
+```
+
+可以通过如下命令构建出一个大小为零的镜像
+
+```bash
+tar cv --files-from /dev/null | docker import - scratch
+```
+
+
+
+
+
+#### 构建空镜像
+
+需要先准备一个可执行的二进制文件
+
+```go
+
+import "fmt"
+
+func main() {
+	fmt.Println("Hello World")
+}
+
+// 编译命令：go build -o hello main.go 
+// Docker 是go语言写的，C语言不行，跑的话会报错。
+```
+
+准备Dockerfile文件
+
+```dockerfile
+FROM scratch
+
+ADD hello /
+CMD ["/hello"]
+```
+
+
+
+构建镜像
+
+```bash
+# docker build -t hello .
+[+] Building 23.2s (5/5) FINISHED                                                                                                                            
+ => [internal] load build definition from Dockerfile                                                                                                         
+ => => transferring dockerfile: 77B                                                                                                                          
+ => [internal] load .dockerignore                                                                                                                            
+ => => transferring context: 2B                                                                                                                              
+ => [internal] load build context                                                                                                                            
+ => => transferring context: 2.20MB                                                                                                                          
+ => [1/1] ADD hello /                                                                                                                                        
+ => exporting to image                                                                                                                                       
+ => => exporting layers                                                                                                                                      
+ => => writing image sha256:3220ed4b071d30f5c59ffba012b247664b019e8a29f205e6dc6ff91948be21a7                                                                 
+ => => naming to docker.io/library/hello    
+
+```
+
+
+
+测试执行镜像
+
+```bash
+# docker run --rm hello
+Hello World
+```
+
